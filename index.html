@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mala & Bead Counter - Digital Mindfulness Tally</title>
+  <meta name="theme-color" content="#1e1b18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bead Counter">
+  <!-- PWA Manifest via Data URI -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Bead%20Counter%22%2C%22short_name%22%3A%22Beads%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23121110%22%2C%22theme_color%22%3A%22%23d97706%22%7D">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .font-serif-sacred {
+      font-family: 'Cinzel', serif;
+    }
+    /* Smooth transition for theme colors */
+    .theme-transition {
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+    /* Subtle pulsation effect when counting */
+    @keyframes beadTap {
+      0% { transform: scale(1); }
+      40% { transform: scale(0.96); }
+      70% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    .bead-active {
+      animation: beadTap 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    /* Hide scrollbars but keep scrolling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body id="app-body" class="bg-stone-950 text-stone-100 min-h-screen flex flex-col justify-between theme-transition antialiased overflow-x-hidden">
+
+  <!-- TOP APP BAR -->
+  <header class="w-full max-w-xl mx-auto px-4 pt-4 pb-2 flex items-center justify-between z-10">
+    <div class="flex items-center space-x-2">
+      <div id="theme-logo-badge" class="w-9 h-9 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-lg shadow-sm">
+        📿
+      </div>
+      <div>
+        <h1 class="text-base font-semibold leading-tight tracking-wide font-serif-sacred text-stone-100 flex items-center gap-1.5">
+          Bead Counter
+          <span id="target-pill" class="text-xs px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 border border-stone-700 font-sans font-normal">108</span>
+        </h1>
+        <p id="sub-mode-text" class="text-xs text-stone-400">Digital Mala & Tasbih</p>
+      </div>
+    </div>
+
+    <!-- Quick action icon buttons -->
+    <div class="flex items-center space-x-1 sm:space-x-2">
+      <!-- Sound toggle button -->
+      <button id="btn-sound" class="p-2.5 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-stone-800 text-stone-300 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50" aria-label="Toggle Sound" title="Sound feedback">
+        <svg id="icon-sound-on" class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+        </svg>
+        <svg id="icon-sound-off" class="w-5 h-5 text-stone-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
+        </svg>
+      </button>
+
+      <!-- Target Settings button -->
+      <button id="btn-target-settings" class="p-2.5 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-stone-800 text-stone-300 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50" aria-label="Choose Target" title="Set counting target">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+        </svg>
+      </button>
+
+      <!-- Themes button -->
+      <button id="btn-themes" class="p-2.5 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-stone-800 text-stone-300 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50" aria-label="Change Theme" title="Theme colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4 4 4 0 014-4c.73 0 1.41.2 2 .54l3-3m0 0l-3-3a4 4 0 115.66-5.66l3 3m-5.66 5.66L17 13a4 4 0 11-5.66 5.66l-3-3z"></path>
+        </svg>
+      </button>
+
+      <!-- History button -->
+      <button id="btn-history" class="p-2.5 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-stone-800 text-stone-300 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50" aria-label="Practice Log" title="History & Streaks">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN COUNTING ARENA -->
+  <main class="w-full max-w-xl mx-auto px-4 flex-1 flex flex-col items-center justify-center py-4">
+
+    <!-- Stat banner: Laps / Rounds and Today's Total -->
+    <div class="w-full flex items-center justify-between px-6 py-2.5 mb-4 bg-stone-900/60 border border-stone-800/80 rounded-2xl backdrop-blur-sm text-sm">
+      <div class="flex items-center space-x-2">
+        <span class="text-xs uppercase tracking-wider text-stone-400 font-medium">Completed Malas:</span>
+        <span id="lap-count" class="font-bold text-amber-400 text-base">0</span>
+      </div>
+      <div class="h-4 w-px bg-stone-800"></div>
+      <div class="flex items-center space-x-2">
+        <span class="text-xs uppercase tracking-wider text-stone-400 font-medium">Today Total:</span>
+        <span id="today-total-count" class="font-bold text-stone-200 text-base">0</span>
+      </div>
+    </div>
+
+    <!-- MAIN INTERACTIVE BEAD CIRCLE -->
+    <div class="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center my-auto cursor-pointer select-none" id="tap-arena">
+      <!-- Circular Progress Ring (SVG) -->
+      <svg class="w-full h-full transform -rotate-90 filter drop-shadow-lg" viewBox="0 0 100 100">
+        <!-- Track Circle -->
+        <circle cx="50" cy="50" r="44" class="text-stone-800/80 stroke-current" stroke-width="4.5" fill="transparent"></circle>
+        <!-- Animated Progress Stroke -->
+        <circle id="progress-ring-stroke" cx="50" cy="50" r="44" class="text-amber-500 stroke-current transition-all duration-200 ease-out" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="276.46" fill="transparent"></circle>
+      </svg>
+
+      <!-- Center Touch Hub / Bead Orb -->
+      <div id="bead-disc" class="absolute w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-gradient-to-b from-stone-800/90 via-stone-900 to-stone-950 border-2 border-amber-500/30 shadow-2xl flex flex-col items-center justify-center text-center p-4 transition-transform active:scale-95 group">
+        <!-- Glowing aura inside bead disc -->
+        <div id="disc-glow" class="absolute inset-0 rounded-full bg-amber-500/10 blur-xl opacity-60 group-hover:opacity-90 transition-opacity pointer-events-none"></div>
+
+        <!-- Bead Mala icon or bead string ornament -->
+        <span id="bead-sub-badge" class="text-xs uppercase tracking-widest text-amber-400/90 font-medium mb-1 flex items-center gap-1">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          <span id="bead-status-label">TAP TO COUNT</span>
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+        </span>
+
+        <!-- Current Big Counter Number -->
+        <div id="current-count-display" class="text-6xl sm:text-7xl font-extrabold tracking-tight text-stone-100 font-serif-sacred drop-shadow-md my-1 leading-none">
+          0
+        </div>
+
+        <!-- Target Subtext / Remaining -->
+        <div class="text-sm font-medium text-stone-400 flex items-center gap-1">
+          <span>of</span>
+          <span id="target-count-display" class="text-stone-200 font-semibold">108</span>
+          <span class="text-xs text-stone-500">(<span id="percent-display">0%</span>)</span>
+        </div>
+
+        <div class="mt-3 text-[11px] text-stone-500 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+          </svg>
+          <span>Tap or Swipe Down</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLS & MANUAL OVERRIDE -->
+    <div class="w-full max-w-sm flex items-center justify-center gap-3 mt-4">
+      <!-- Undo / -1 button -->
+      <button id="btn-decrement" class="flex-1 py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 active:bg-stone-700 border border-stone-800 text-stone-300 font-medium text-sm flex items-center justify-center gap-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/30" title="Decrement count by 1">
+        <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+        </svg>
+        <span>Undo</span>
+      </button>
+
+      <!-- +10 Quick Add -->
+      <button id="btn-add-ten" class="py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 active:bg-stone-700 border border-stone-800 text-stone-300 font-medium text-sm flex items-center justify-center gap-1 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/30" title="Add 10 counts">
+        <span>+10</span>
+      </button>
+
+      <!-- Reset button -->
+      <button id="btn-reset-prompt" class="flex-1 py-3 px-4 rounded-xl bg-stone-900 hover:bg-rose-950/40 hover:text-rose-300 hover:border-rose-900/60 active:bg-rose-900/50 border border-stone-800 text-stone-400 font-medium text-sm flex items-center justify-center gap-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500/30" title="Reset current round">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span>Reset</span>
+      </button>
+    </div>
+
+    <!-- Target Complete Toast Banner (Hidden by default) -->
+    <div id="target-completed-banner" class="hidden mt-4 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-medium flex items-center gap-2 animate-bounce">
+      <span>✨</span>
+      <span>Mala complete! Cycle automatically incremented.</span>
+    </div>
+  </main>
+
+  <!-- BOTTOM FOOTER -->
+  <footer class="w-full max-w-xl mx-auto px-4 py-3 flex items-center justify-between text-xs text-stone-500 border-t border-stone-900">
+    <div class="flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+      <span id="streak-indicator">1 Day Streak</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="btn-pwa-info" class="hover:text-stone-300 underline focus:outline-none">Mobile App Info</button>
+      <span>•</span>
+      <span>Press <kbd class="px-1 py-0.5 rounded bg-stone-800 text-stone-300 text-[10px] font-mono">Space</kbd> to count</span>
+    </div>
+  </footer>
+
+  <!-- ================= MODALS & POPUPS ================= -->
+
+  <!-- TARGET SETTINGS MODAL -->
+  <div id="modal-target" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-800">
+        <h2 class="text-lg font-bold text-stone-100 flex items-center gap-2 font-serif-sacred">
+          <span>🎯</span> Counting Target
+        </h2>
+        <button id="btn-close-target-modal" class="text-stone-400 hover:text-stone-200 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3">
+        <p class="text-xs text-stone-400">Choose a standard practice count or enter your own custom goal:</p>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <button data-target="108" class="preset-target-btn py-2.5 px-3 rounded-xl bg-stone-800/80 hover:bg-stone-700/80 border border-stone-700 text-stone-200 font-medium text-left flex justify-between items-center">
+            <span>108 Beads</span>
+            <span class="text-xs text-amber-400">Full Mala</span>
+          </button>
+          <button data-target="54" class="preset-target-btn py-2.5 px-3 rounded-xl bg-stone-800/80 hover:bg-stone-700/80 border border-stone-700 text-stone-200 font-medium text-left flex justify-between items-center">
+            <span>54 Beads</span>
+            <span class="text-xs text-stone-400">Half Mala</span>
+          </button>
+          <button data-target="27" class="preset-target-btn py-2.5 px-3 rounded-xl bg-stone-800/80 hover:bg-stone-700/80 border border-stone-700 text-stone-200 font-medium text-left flex justify-between items-center">
+            <span>27 Beads</span>
+            <span class="text-xs text-stone-400">Quarter</span>
+          </button>
+          <button data-target="99" class="preset-target-btn py-2.5 px-3 rounded-xl bg-stone-800/80 hover:bg-stone-700/80 border border-stone-700 text-stone-200 font-medium text-left flex justify-between items-center">
+            <span>99 Beads</span>
+            <span class="text-xs text-emerald-400">Tasbih</span>
+          </button>
+          <button data-target="33" class="preset-target-btn py-2.5 px-3 rounded-xl bg-stone-800/80 hover:bg-stone-700/80 border border-stone-700 text-stone-200 font-medium text-left flex justify-between items-center">
+            <span>33 Beads</span>
+            <span class="text-xs text-emerald-400">Tasbih Short</span>
+          </button>
+          <button data-target="1000" class="preset-target-btn py-2.5 px-3 rounded-xl bg-stone-800/80 hover:bg-stone-700/80 border border-stone-700 text-stone-200 font-medium text-left flex justify-between items-center">
+            <span>1000 Counts</span>
+            <span class="text-xs text-indigo-400">Deep Chant</span>
+          </button>
+        </div>
+
+        <div class="pt-2">
+          <label for="custom-target-input" class="block text-xs font-medium text-stone-300 mb-1">Custom Target Count:</label>
+          <div class="flex gap-2">
+            <input type="number" id="custom-target-input" min="1" max="99999" placeholder="e.g. 21, 100, 500" class="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-3 py-2 text-stone-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <button id="btn-save-custom-target" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-semibold rounded-xl text-sm transition-colors">Set</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THEME SELECTOR MODAL -->
+  <div id="modal-themes" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-800">
+        <h2 class="text-lg font-bold text-stone-100 flex items-center gap-2 font-serif-sacred">
+          <span>🎨</span> Visual Theme
+        </h2>
+        <button id="btn-close-theme-modal" class="text-stone-400 hover:text-stone-200 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <button data-theme="amber" class="theme-choice-btn p-3 rounded-xl border border-stone-700 bg-stone-800/90 text-left flex items-center gap-3 hover:border-amber-500 transition-all">
+          <span class="w-6 h-6 rounded-full bg-amber-500 shadow-sm"></span>
+          <div>
+            <div class="font-medium text-stone-100">Sandalwood Amber</div>
+            <div class="text-xs text-stone-400">Warm sacred glow</div>
+          </div>
+        </button>
+
+        <button data-theme="emerald" class="theme-choice-btn p-3 rounded-xl border border-stone-700 bg-stone-800/90 text-left flex items-center gap-3 hover:border-emerald-500 transition-all">
+          <span class="w-6 h-6 rounded-full bg-emerald-500 shadow-sm"></span>
+          <div>
+            <div class="font-medium text-stone-100">Sacred Jade</div>
+            <div class="text-xs text-stone-400">Calming green</div>
+          </div>
+        </button>
+
+        <button data-theme="rose" class="theme-choice-btn p-3 rounded-xl border border-stone-700 bg-stone-800/90 text-left flex items-center gap-3 hover:border-rose-500 transition-all">
+          <span class="w-6 h-6 rounded-full bg-rose-500 shadow-sm"></span>
+          <div>
+            <div class="font-medium text-stone-100">Lotus Crimson</div>
+            <div class="text-xs text-stone-400">Spiritual warmth</div>
+          </div>
+        </button>
+
+        <button data-theme="indigo" class="theme-choice-btn p-3 rounded-xl border border-stone-700 bg-stone-800/90 text-left flex items-center gap-3 hover:border-indigo-500 transition-all">
+          <span class="w-6 h-6 rounded-full bg-indigo-500 shadow-sm"></span>
+          <div>
+            <div class="font-medium text-stone-100">Night Obsidian</div>
+            <div class="text-xs text-stone-400">Midnight deep focus</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRACTICE HISTORY & LOG MODAL -->
+  <div id="modal-history" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-800">
+        <h2 class="text-lg font-bold text-stone-100 flex items-center gap-2 font-serif-sacred">
+          <span>📜</span> Practice History & Stats
+        </h2>
+        <button id="btn-close-history-modal" class="text-stone-400 hover:text-stone-200 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Quick summary cards -->
+      <div class="grid grid-cols-3 gap-2 my-4 text-center">
+        <div class="p-3 bg-stone-800/60 rounded-xl border border-stone-700/60">
+          <div class="text-xs text-stone-400">Total Chants</div>
+          <div id="hist-total-chants" class="text-lg font-bold text-amber-400">0</div>
+        </div>
+        <div class="p-3 bg-stone-800/60 rounded-xl border border-stone-700/60">
+          <div class="text-xs text-stone-400">Total Malas</div>
+          <div id="hist-total-malas" class="text-lg font-bold text-stone-200">0</div>
+        </div>
+        <div class="p-3 bg-stone-800/60 rounded-xl border border-stone-700/60">
+          <div class="text-xs text-stone-400">Active Streak</div>
+          <div id="hist-streak-days" class="text-lg font-bold text-emerald-400">1 d</div>
+        </div>
+      </div>
+
+      <!-- Session log entries list -->
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">Recent Daily Sessions</h3>
+      <div id="history-log-list" class="space-y-2 overflow-y-auto flex-1 pr-1 text-sm no-scrollbar">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-stone-800 flex justify-between items-center">
+        <button id="btn-clear-history" class="text-xs text-rose-400 hover:text-rose-300 font-medium">Clear Practice Log</button>
+        <button id="btn-export-log" class="text-xs text-stone-400 hover:text-stone-200 font-medium">Copy Summary</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET CONFIRMATION MODAL -->
+  <div id="modal-reset-confirm" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl relative text-center">
+      <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 mx-auto flex items-center justify-center text-xl mb-3">
+        ⚠️
+      </div>
+      <h3 class="text-base font-bold text-stone-100 mb-1">Reset Counter?</h3>
+      <p class="text-xs text-stone-400 mb-5">Would you like to reset the current round to zero, or reset everything including completed malas?</p>
+
+      <div class="space-y-2">
+        <button id="btn-confirm-reset-round" class="w-full py-2.5 px-4 bg-stone-800 hover:bg-stone-700 text-stone-200 font-medium rounded-xl text-sm transition-colors">
+          Reset Current Round (Keep Malas)
+        </button>
+        <button id="btn-confirm-reset-all" class="w-full py-2.5 px-4 bg-rose-600/80 hover:bg-rose-600 text-white font-medium rounded-xl text-sm transition-colors">
+          Reset All (Zero Everything)
+        </button>
+        <button id="btn-cancel-reset" class="w-full py-2 px-4 text-stone-400 hover:text-stone-300 text-xs font-medium mt-1">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA INSTALL GUIDE MODAL -->
+  <div id="modal-pwa" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-800">
+        <h2 class="text-lg font-bold text-stone-100 flex items-center gap-2 font-serif-sacred">
+          <span>📱</span> Mobile App & Offline Setup
+        </h2>
+        <button id="btn-close-pwa-modal" class="text-stone-400 hover:text-stone-200 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3 text-xs text-stone-300">
+        <p>This Beads Counter is a Progressive Web App (PWA). You can save it directly to your home screen to use it full-screen and offline anywhere:</p>
+        <div class="p-3 bg-stone-800/60 rounded-xl border border-stone-700/60 space-y-2">
+          <div class="font-semibold text-amber-400">On iPhone / iPad (Safari):</div>
+          <ol class="list-decimal list-inside space-y-1 text-stone-400 pl-1">
+            <li>Tap the <strong>Share</strong> button at bottom of browser.</li>
+            <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+            <li>Tap <strong>Add</strong> in the top right.</li>
+          </ol>
+        </div>
+        <div class="p-3 bg-stone-800/60 rounded-xl border border-stone-700/60 space-y-2">
+          <div class="font-semibold text-amber-400">On Android (Chrome):</div>
+          <ol class="list-decimal list-inside space-y-1 text-stone-400 pl-1">
+            <li>Tap the three vertical dots menu icon (⋮).</li>
+            <li>Tap <strong>Install App</strong> or <strong>Add to Home Screen</strong>.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-16 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-xl bg-stone-800 text-stone-200 text-xs border border-stone-700 shadow-xl opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+    Notification text
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    (function() {
+      // APP STATE
+      const state = {
+        count: 0,
+        laps: 0,
+        target: 108,
+        todayTotal: 0,
+        soundEnabled: true,
+        theme: 'amber', // amber, emerald, rose, indigo
+        history: {}, // { 'YYYY-MM-DD': { counts: 108, laps: 1 } }
+        streak: 1
+      };
+
+      // AUDIO SYNTHESIS via Web Audio API
+      let audioCtx = null;
+      function initAudio() {
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            audioCtx = new AudioContext();
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      function playBeadTapSound() {
+        if (!state.soundEnabled) return;
+        try {
+          initAudio();
+          if (!audioCtx) return;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          
+          // Realistic organic wood bead 'click' resonance
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(420, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(140, audioCtx.currentTime + 0.05);
+
+          gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.06);
+        } catch (e) {
+          console.warn('Audio error:', e);
+        }
+      }
+
+      function playChimeCompleteSound() {
+        if (!state.soundEnabled) return;
+        try {
+          initAudio();
+          if (!audioCtx) return;
+          // Harmonious singing bowl / bell harmonic
+          const freqs = [528, 792, 1056]; // Solfeggio & harmonics
+          freqs.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            const startVol = 0.25 / (idx + 1);
+            gain.gain.setValueAtTime(startVol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.25);
+          });
+        } catch (e) {
+          console.warn('Audio error:', e);
+        }
+      }
+
+      function triggerHaptic() {
+        if ('vibrate' in navigator) {
+          try {
+            navigator.vibrate(25);
+          } catch (e) {}
+        }
+      }
+
+      // LOCAL STORAGE PERSISTENCE
+      const STORAGE_KEY = 'bead_counter_app_data_v2';
+
+      function loadSavedState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (typeof parsed.count === 'number') state.count = parsed.count;
+            if (typeof parsed.laps === 'number') state.laps = parsed.laps;
+            if (typeof parsed.target === 'number' && parsed.target > 0) state.target = parsed.target;
+            if (typeof parsed.soundEnabled === 'boolean') state.soundEnabled = parsed.soundEnabled;
+            if (parsed.theme) state.theme = parsed.theme;
+            if (parsed.history && typeof parsed.history === 'object') state.history = parsed.history;
+          }
+        } catch (e) {
+          console.warn('Could not load localStorage', e);
+        }
+
+        // Calculate today's total from history
+        const todayStr = getTodayDateStr();
+        if (state.history[todayStr]) {
+          state.todayTotal = state.history[todayStr].counts || 0;
+        } else {
+          state.todayTotal = (state.laps * state.target) + state.count;
+        }
+        calculateStreak();
+      }
+
+      function saveState() {
+        try {
+          const todayStr = getTodayDateStr();
+          if (!state.history[todayStr]) {
+            state.history[todayStr] = { counts: 0, laps: 0 };
+          }
+          state.history[todayStr].counts = state.todayTotal;
+          state.history[todayStr].laps = state.laps;
+
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            count: state.count,
+            laps: state.laps,
+            target: state.target,
+            soundEnabled: state.soundEnabled,
+            theme: state.theme,
+            history: state.history
+          }));
+        } catch (e) {
+          console.warn('Could not save to localStorage', e);
+        }
+      }
+
+      function getTodayDateStr() {
+        const d = new Date();
+        return d.toISOString().split('T')[0];
+      }
+
+      function calculateStreak() {
+        const dates = Object.keys(state.history).sort();
+        if (dates.length === 0) {
+          state.streak = 1;
+          return;
+        }
+        let streak = 1;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Check recent consecutive days
+        let checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - 1);
+
+        while (true) {
+          const y = checkDate.toISOString().split('T')[0];
+          if (state.history[y] && state.history[y].counts > 0) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+        state.streak = streak;
+      }
+
+      // UI ELEMENTS
+      const countDisplay = document.getElementById('current-count-display');
+      const targetDisplay = document.getElementById('target-count-display');
+      const targetPill = document.getElementById('target-pill');
+      const lapDisplay = document.getElementById('lap-count');
+      const todayTotalDisplay = document.getElementById('today-total-count');
+      const percentDisplay = document.getElementById('percent-display');
+      const progressStroke = document.getElementById('progress-ring-stroke');
+      const beadDisc = document.getElementById('bead-disc');
+      const tapArena = document.getElementById('tap-arena');
+      const streakIndicator = document.getElementById('streak-indicator');
+      const completionBanner = document.getElementById('target-completed-banner');
+      const soundBtn = document.getElementById('btn-sound');
+      const iconSoundOn = document.getElementById('icon-sound-on');
+      const iconSoundOff = document.getElementById('icon-sound-off');
+      const toastEl = document.getElementById('toast');
+
+      let toastTimeout = null;
+      function showToast(msg) {
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastEl.textContent = msg;
+        toastEl.classList.remove('opacity-0', 'pointer-events-none');
+        toastEl.classList.add('opacity-100');
+        toastTimeout = setTimeout(() => {
+          toastEl.classList.remove('opacity-100');
+          toastEl.classList.add('opacity-0', 'pointer-events-none');
+        }, 2200);
+      }
+
+      // THEMES CONFIGURATION
+      const THEMES = {
+        amber: {
+          name: 'Sandalwood Amber',
+          badgeBg: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+          strokeClass: 'text-amber-500',
+          discBorder: 'border-amber-500/30',
+          glowBg: 'bg-amber-500/15',
+          activeRing: 'focus:ring-amber-500/50'
+        },
+        emerald: {
+          name: 'Sacred Jade',
+          badgeBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+          strokeClass: 'text-emerald-500',
+          discBorder: 'border-emerald-500/30',
+          glowBg: 'bg-emerald-500/15',
+          activeRing: 'focus:ring-emerald-500/50'
+        },
+        rose: {
+          name: 'Lotus Crimson',
+          badgeBg: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+          strokeClass: 'text-rose-500',
+          discBorder: 'border-rose-500/30',
+          glowBg: 'bg-rose-500/15',
+          activeRing: 'focus:ring-rose-500/50'
+        },
+        indigo: {
+          name: 'Night Obsidian',
+          badgeBg: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+          strokeClass: 'text-indigo-500',
+          discBorder: 'border-indigo-500/30',
+          glowBg: 'bg-indigo-500/15',
+          activeRing: 'focus:ring-indigo-500/50'
+        }
+      };
+
+      function applyTheme(themeKey) {
+        const theme = THEMES[themeKey] || THEMES.amber;
+        state.theme = themeKey;
+
+        // Update stroke color
+        progressStroke.setAttribute('class', theme.strokeClass + ' stroke-current transition-all duration-200 ease-out');
+        
+        // Update glow and disc border
+        const discGlow = document.getElementById('disc-glow');
+        if (discGlow) {
+          discGlow.className = 'absolute inset-0 rounded-full blur-xl opacity-60 group-hover:opacity-90 transition-opacity pointer-events-none ' + theme.glowBg;
+        }
+        beadDisc.className = 'absolute w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-gradient-to-b from-stone-800/90 via-stone-900 to-stone-950 border-2 shadow-2xl flex flex-col items-center justify-center text-center p-4 transition-transform active:scale-95 group ' + theme.discBorder;
+        
+        saveState();
+      }
+
+      // RENDER ALL STATE TO UI
+      const CIRCLE_CIRCUMFERENCE = 276.46; // 2 * PI * 44
+
+      function renderUI() {
+        countDisplay.textContent = state.count;
+        targetDisplay.textContent = state.target;
+        targetPill.textContent = state.target;
+        lapDisplay.textContent = state.laps;
+        todayTotalDisplay.textContent = state.todayTotal;
+        streakIndicator.textContent = state.streak + ' Day' + (state.streak > 1 ? 's' : '') + ' Streak';
+
+        // Percentage and circle progress stroke
+        const pct = Math.min(100, Math.round((state.count / state.target) * 100));
+        percentDisplay.textContent = pct + '%';
+
+        const strokeOffset = CIRCLE_CIRCUMFERENCE - (CIRCLE_CIRCUMFERENCE * (state.count / state.target));
+        progressStroke.style.strokeDashoffset = Math.max(0, strokeOffset);
+
+        // Sound icon state
+        if (state.soundEnabled) {
+          iconSoundOn.classList.remove('hidden');
+          iconSoundOff.classList.add('hidden');
+        } else {
+          iconSoundOn.classList.add('hidden');
+          iconSoundOff.classList.remove('hidden');
+        }
+      }
+
+      // CORE ACTIONS: INCREMENT, DECREMENT, RESET
+      let bannerTimeout = null;
+
+      function incrementCount(amount = 1) {
+        initAudio();
+        triggerHaptic();
+
+        // Animate bead disc
+        beadDisc.classList.remove('bead-active');
+        void beadDisc.offsetWidth; // trigger reflow
+        beadDisc.classList.add('bead-active');
+
+        state.count += amount;
+        state.todayTotal += amount;
+
+        // Check if lap / round completed
+        if (state.count >= state.target) {
+          const completedLaps = Math.floor(state.count / state.target);
+          state.laps += completedLaps;
+          state.count = state.count % state.target;
+          
+          playChimeCompleteSound();
+          
+          // Show celebration banner
+          completionBanner.classList.remove('hidden');
+          if (bannerTimeout) clearTimeout(bannerTimeout);
+          bannerTimeout = setTimeout(() => {
+            completionBanner.classList.add('hidden');
+          }, 3500);
+          showToast('🎉 Mala target completed! Round recorded.');
+        } else {
+          playBeadTapSound();
+        }
+
+        saveState();
+        renderUI();
+      }
+
+      function decrementCount() {
+        if (state.count > 0) {
+          state.count--;
+          if (state.todayTotal > 0) state.todayTotal--;
+          playBeadTapSound();
+          triggerHaptic();
+          saveState();
+          renderUI();
+        } else if (state.laps > 0) {
+          // If at 0 and have laps, allow undoing back into the previous lap
+          state.laps--;
+          state.count = state.target - 1;
+          if (state.todayTotal > 0) state.todayTotal--;
+          playBeadTapSound();
+          triggerHaptic();
+          saveState();
+          renderUI();
+          showToast('Undid into previous mala');
+        } else {
+          showToast('Counter is already at zero');
+        }
+      }
+
+      // SWIPE DETECTION ON TAP ARENA
+      let touchStartY = 0;
+      let touchEndY = 0;
+
+      tapArena.addEventListener('touchstart', (e) => {
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      tapArena.addEventListener('touchend', (e) => {
+        touchEndY = e.changedTouches[0].screenY;
+        const diff = touchEndY - touchStartY;
+        // If swiped down more than 30px, count!
+        if (diff > 30) {
+          incrementCount(1);
+        } else if (Math.abs(diff) <= 15) {
+          // Tap
+          incrementCount(1);
+        }
+      }, { passive: true });
+
+      // Click fallback for desktop
+      tapArena.addEventListener('click', (e) => {
+        // Only if not triggered by touch
+        if (e.pointerType !== 'touch') {
+          incrementCount(1);
+        }
+      });
+
+      // Quick buttons
+      document.getElementById('btn-decrement').addEventListener('click', decrementCount);
+      document.getElementById('btn-add-ten').addEventListener('click', () => {
+        incrementCount(10);
+      });
+
+      // Sound button
+      soundBtn.addEventListener('click', () => {
+        state.soundEnabled = !state.soundEnabled;
+        if (state.soundEnabled) {
+          initAudio();
+          playBeadTapSound();
+          showToast('Sound enabled');
+        } else {
+          showToast('Sound muted');
+        }
+        saveState();
+        renderUI();
+      });
+
+      // MODALS SETUP
+      const modalTarget = document.getElementById('modal-target');
+      const modalThemes = document.getElementById('modal-themes');
+      const modalHistory = document.getElementById('modal-history');
+      const modalResetConfirm = document.getElementById('modal-reset-confirm');
+      const modalPwa = document.getElementById('modal-pwa');
+
+      // Target modal
+      document.getElementById('btn-target-settings').addEventListener('click', () => {
+        modalTarget.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-target-modal').addEventListener('click', () => {
+        modalTarget.classList.add('hidden');
+      });
+      document.querySelectorAll('.preset-target-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = parseInt(btn.getAttribute('data-target'), 10);
+          if (val > 0) {
+            state.target = val;
+            saveState();
+            renderUI();
+            modalTarget.classList.add('hidden');
+            showToast('Target set to ' + val);
+          }
+        });
+      });
+      document.getElementById('btn-save-custom-target').addEventListener('click', () => {
+        const input = document.getElementById('custom-target-input');
+        const val = parseInt(input.value, 10);
+        if (val && val > 0) {
+          state.target = val;
+          input.value = '';
+          saveState();
+          renderUI();
+          modalTarget.classList.add('hidden');
+          showToast('Custom target set to ' + val);
+        } else {
+          showToast('Please enter a valid count');
+        }
+      });
+
+      // Theme modal
+      document.getElementById('btn-themes').addEventListener('click', () => {
+        modalThemes.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-theme-modal').addEventListener('click', () => {
+        modalThemes.classList.add('hidden');
+      });
+      document.querySelectorAll('.theme-choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const t = btn.getAttribute('data-theme');
+          applyTheme(t);
+          modalThemes.classList.add('hidden');
+          showToast('Theme updated: ' + THEMES[t].name);
+        });
+      });
+
+      // History modal
+      function updateHistoryModal() {
+        const totalChants = Object.values(state.history).reduce((acc, cur) => acc + (cur.counts || 0), 0);
+        const totalMalas = Object.values(state.history).reduce((acc, cur) => acc + (cur.laps || 0), 0);
+
+        document.getElementById('hist-total-chants').textContent = totalChants;
+        document.getElementById('hist-total-malas').textContent = totalMalas;
+        document.getElementById('hist-streak-days').textContent = state.streak + ' d';
+
+        const listContainer = document.getElementById('history-log-list');
+        listContainer.innerHTML = '';
+
+        const dates = Object.keys(state.history).sort().reverse();
+        if (dates.length === 0) {
+          listContainer.innerHTML = '<div class="text-xs text-stone-500 py-4 text-center">No practice history recorded yet.</div>';
+          return;
+        }
+
+        dates.forEach(d => {
+          const item = state.history[d];
+          const row = document.createElement('div');
+          row.className = 'p-3 bg-stone-800/60 rounded-xl border border-stone-800 flex items-center justify-between';
+          row.innerHTML = `
+            <div>
+              <div class="font-medium text-stone-200 text-xs">${d}</div>
+              <div class="text-[11px] text-stone-400">${item.laps || 0} completed mala rounds</div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold text-amber-400">${item.counts || 0}</span>
+              <span class="text-[10px] text-stone-500 block">beads counted</span>
+            </div>
+          `;
+          listContainer.appendChild(row);
+        });
+      }
+
+      document.getElementById('btn-history').addEventListener('click', () => {
+        updateHistoryModal();
+        modalHistory.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-history-modal').addEventListener('click', () => {
+        modalHistory.classList.add('hidden');
+      });
+
+      document.getElementById('btn-clear-history').addEventListener('click', () => {
+        state.history = {};
+        state.streak = 1;
+        state.todayTotal = (state.laps * state.target) + state.count;
+        saveState();
+        updateHistoryModal();
+        renderUI();
+        showToast('Practice history cleared');
+      });
+
+      document.getElementById('btn-export-log').addEventListener('click', () => {
+        const text = '📿 Beads Counting Summary:\n' +
+          '• Current Target: ' + state.target + '\n' +
+          '• Today Count: ' + state.todayTotal + '\n' +
+          '• Completed Malas: ' + state.laps + '\n' +
+          '• Daily Streak: ' + state.streak + ' days';
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => {
+            showToast('Summary copied to clipboard!');
+          }).catch(() => {
+            showToast('Copied summary');
+          });
+        } else {
+          showToast('Copied summary');
+        }
+      });
+
+      // Reset modal
+      document.getElementById('btn-reset-prompt').addEventListener('click', () => {
+        modalResetConfirm.classList.remove('hidden');
+      });
+      document.getElementById('btn-cancel-reset').addEventListener('click', () => {
+        modalResetConfirm.classList.add('hidden');
+      });
+      document.getElementById('btn-confirm-reset-round').addEventListener('click', () => {
+        state.count = 0;
+        saveState();
+        renderUI();
+        modalResetConfirm.classList.add('hidden');
+        showToast('Current round reset to 0');
+      });
+      document.getElementById('btn-confirm-reset-all').addEventListener('click', () => {
+        state.count = 0;
+        state.laps = 0;
+        state.todayTotal = 0;
+        saveState();
+        renderUI();
+        modalResetConfirm.classList.add('hidden');
+        showToast('All counts reset to 0');
+      });
+
+      // PWA guide modal
+      document.getElementById('btn-pwa-info').addEventListener('click', () => {
+        modalPwa.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-pwa-modal').addEventListener('click', () => {
+        modalPwa.classList.add('hidden');
+      });
+
+      // Keyboard navigation
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+          e.preventDefault();
+          incrementCount(1);
+        } else if (e.code === 'ArrowDown') {
+          e.preventDefault();
+          decrementCount();
+        } else if (e.code === 'KeyR') {
+          modalResetConfirm.classList.remove('hidden');
+        }
+      });
+
+      // INITIALIZE
+      loadSavedState();
+      applyTheme(state.theme);
+      renderUI();
+    })();
+  </script>
+</body>
+</html>
